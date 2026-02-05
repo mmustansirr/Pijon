@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pijon — IoT Pet Feeder
 
-## Getting Started
+Pijon is a connected, 3D-printed pet feeder. This repo contains:
 
-First, run the development server:
+- A **Next.js control panel** that talks to the device over MQTT.
+- **ESP32 firmware documentation** for the feeder logic + servo control.
+- **3D models** (`.blend` + `.stl`) for printing the feeder body and mechanism.
+
+> The web UI publishes feed commands and listens for acknowledgements/heartbeats.
+
+---
+
+## Quick Tour
+
+| Area | Description |
+| --- | --- |
+| `app/page.tsx` | Web UI: feed controls, status pill, local schedules |
+| `lib/mqttClient.js` | MQTT client helper (connect, publish, subscribe) |
+| `../esp32-pijon.md` | Firmware reference for the ESP32 feeder logic |
+| `3d Models/` | Blender + STL parts for the physical build |
+
+---
+
+## Features
+
+- **Feed presets**: SMALL / MEDIUM / LARGE
+- **MQTT live status**: ONLINE / OFFLINE with heartbeats
+- **ACK handling**: FEED button unlocks only on device confirmation
+- **Local scheduling**: browser-based timers (no cloud required)
+- **Manual hardware feed button** on GPIO23 (debounced)
+
+---
+
+## Web App Setup
+
+### 1) Install dependencies
+
+```bash
+npm install
+```
+
+### 2) Start development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## MQTT Details
 
-## Learn More
+The UI connects via WebSocket to a public broker by default:
 
-To learn more about Next.js, take a look at the following resources:
+```
+wss://broker.hivemq.com:8884/mqtt
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Topics**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `pijon/feed` — Publish commands
+- `pijon/status` — Device heartbeats
+- `pijon/ack` — Device acknowledgements
 
-## Deploy on Vercel
+**Payloads**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `FEED:SMALL`
+- `FEED:MEDIUM`
+- `FEED:LARGE`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**ACK Messages**
+
+- `FED` — Successful feed
+- `ERROR:TIMEOUT` — Servo timeout
+
+---
+
+## ESP32 Firmware
+
+The firmware is documented in **`../esp32-pijon.md`** and covers:
+
+- WiFi + MQTT connection
+- Servo control (continuous rotation)
+- Preset feed sizes
+- GPIO23 manual feed button with debounce
+- ACK publishing to `pijon/ack`
+
+Use it as a reference for flashing your ESP32 in Arduino IDE or PlatformIO.
+
+---
+
+## 3D Models
+
+All 3D assets live in **`3d Models/`**. Each part is available as:
+
+- `.blend` (editable in Blender)
+- `.stl` (ready to print)
+
+Key parts:
+
+- `base_compartment` — main chassis
+- `FoodContainer` — hopper
+- `MechanismCompartment` — gear + motor cavity
+- `BigGear` / `SmallGear` / `SnailDrill`
+- `top_lid`, `top_lid_2`, `BackLid`
+- `RoundBowl` / `SquareBowl`
+
+---
+
+## Running a Feed Test
+
+1. Power the ESP32 and connect it to WiFi.
+2. Open the web UI.
+3. Confirm the status shows **Online**.
+4. Select a portion and press **Feed Now**.
+5. Wait for `FED` acknowledgement.
+
+---
+
+## Troubleshooting
+
+- **Offline status**: ensure ESP32 is powered and connected to WiFi.
+- **No ACK**: verify device subscribes to `pijon/feed` and publishes to `pijon/ack`.
+- **Wrong direction**: adjust servo microseconds in firmware.
+
+---
+
+## Repo Structure
+
+```
+Pijon/
+├── esp32-pijon.md
+└── pijon-web/
+    ├── 3d Models/
+    ├── app/
+    ├── lib/
+    └── README.md
+```
+
+---
+
+## Credits
+
+Built with Next.js, MQTT, and a lot of filament.
